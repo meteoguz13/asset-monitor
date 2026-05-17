@@ -37,8 +37,10 @@ def get_live_prices(symbols):
     for name, ticker_code in symbols.items():
         try:
             ticker = yf.Ticker(ticker_code)
-            data = ticker.fast_info
-            prices[name] = data.last_price
+            price = ticker.fast_info.last_price
+            if price is None or pd.isna(price):
+                price = ticker.info.get('regularMarketPrice', None)
+            prices[name] = price
         except:
             prices[name] = None
     return prices
