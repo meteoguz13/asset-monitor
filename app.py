@@ -35,8 +35,12 @@ display_names = {
 def get_live_prices(symbols):
     prices = {}
     for name, ticker_code in symbols.items():
-        ticker = yf.Ticker(ticker_code)
-        prices[name] = ticker.info.get('regularMarketPrice', None)
+        try:
+            ticker = yf.Ticker(ticker_code)
+            data = ticker.fast_info
+            prices[name] = data.last_price
+        except:
+            prices[name] = None
     return prices
 
 @st.cache_data(ttl=3600)
