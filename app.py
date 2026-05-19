@@ -117,10 +117,10 @@ for i, a in enumerate(selected):
         with st.expander("📊 Chart"):
             period = st.selectbox(
                 "Period",
-                ['1 Month', '3 Months', '6 Months', '1 Year'],
+                ["1 Week", '1 Month', '3 Months', '6 Months', '1 Year'],
                 key=f"period_{a}"
             )
-            period_map = {'1 Month': 30, '3 Months': 90, '6 Months': 180, '1 Year': 252}
+            period_map = {"1 Week": 7, '1 Month': 30, '3 Months': 90, '6 Months': 180, '1 Year': 252}
             days = period_map[period]
             chart_data = close[a].tail(days)
             fig = go.Figure()
