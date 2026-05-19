@@ -168,14 +168,16 @@ for i, a in enumerate(selected):
         # Projection
         roc         = close[a].pct_change(30, fill_method=None).dropna() * 100
         current_roc = roc.tail(7).mean()
-        pessimistic = round(price * (1 + (current_roc * 0.5) / 100), 2)
-        base        = round(price * (1 + (current_roc * 1.0) / 100), 2)
-        optimistic  = round(price * (1 + (current_roc * 1.5) / 100), 2)
+        scenario_lo = round(price * (1 + (current_roc * 0.5) / 100), 2)
+        base = round(price * (1 + (current_roc * 1.0) / 100), 2)
+        scenario_hi = round(price * (1 + (current_roc * 1.5) / 100), 2)
+        best_case = max(scenario_lo, scenario_hi)
+        worst_case = min(scenario_lo, scenario_hi)
         st.markdown("**🔮 Projection:**")
         st.dataframe(
             pd.DataFrame({
-                'Scenario': ['🔴 Pessimistic', '🟡 Base', '🟢 Optimistic'],
-                'Price': [pessimistic, base, optimistic]
+                'Scenario': ['🟢 Best Case', '🟡 Base', '🔴 Worst Case'],
+                'Price': [best_case, base, worst_case]
             }),
             hide_index=True,
             use_container_width=True
