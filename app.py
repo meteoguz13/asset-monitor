@@ -167,7 +167,7 @@ for i, a in enumerate(selected):
 
         # Projection
         roc         = close[a].pct_change(30, fill_method=None).dropna() * 100
-        current_roc = roc.iloc[-1]
+        current_roc = roc.tail(7).mean()
         pessimistic = round(price * (1 + (current_roc * 0.5) / 100), 2)
         base        = round(price * (1 + (current_roc * 1.0) / 100), 2)
         optimistic  = round(price * (1 + (current_roc * 1.5) / 100), 2)
