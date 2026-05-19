@@ -246,11 +246,11 @@ for i, a in enumerate(selected):
         # Daily alarm
         if change is not None:
             alarm = check_daily_alarm(change, thresholds[a], t)
-            if 'CRITICAL' in alarm:
+            if t['critical_up'] in alarm or t['critical_down'] in alarm:
                 st.error(f"🚨 {alarm}")
-            elif 'WARNING' in alarm:
+            elif t['warning_up'] in alarm or t['warning_down'] in alarm:
                 st.warning(f"⚠️ {alarm}")
-            elif 'CAUTION' in alarm:
+            elif t['caution_up'] in alarm or t['caution_down'] in alarm:
                 st.warning(f"⚠️ {alarm}")
             else:
                 st.success(f"✅ {alarm}")
