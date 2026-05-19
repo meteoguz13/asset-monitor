@@ -169,10 +169,10 @@ for i, a in enumerate(selected):
         roc         = close[a].pct_change(30, fill_method=None).dropna() * 100
         current_roc = roc.tail(7).mean()
         scenario_lo = round(price * (1 + (current_roc * 0.5) / 100), 2)
-        base = round(price * (1 + (current_roc * 1.0) / 100), 2)
+        base        = round(price * (1 + (current_roc * 1.0) / 100), 2)
         scenario_hi = round(price * (1 + (current_roc * 1.5) / 100), 2)
-        best_case = max(scenario_lo, scenario_hi)
-        worst_case = min(scenario_lo, scenario_hi)
+        best_case   = max(scenario_lo, scenario_hi)
+        worst_case  = min(scenario_lo, scenario_hi)
         st.markdown("**🔮 Projection:**")
         st.dataframe(
             pd.DataFrame({
@@ -224,10 +224,11 @@ with st.expander("ℹ️ How does this app work?"):
     ---
 
     **🔮 30-Day Projection**
-    Not a forecast. Shows where the price might go if the current trend continues:
-    - 🔴 Pessimistic: half the current trend
-    - 🟡 Base: current trend continues
-    - 🟢 Optimistic: 1.5x the current trend
+    Not a forecast. Shows where the price might go if the current trend continues.
+    Trend is calculated as a 7-day average of the 30-day rate of change for stability:
+    - 🟢 Best Case: most favorable price direction
+    - 🟡 Base: current trend continues at the same pace
+    - 🔴 Worst Case: least favorable price direction
     """)
 
 # ── Auto Refresh ──────────────────────────────────────────────────────────────
