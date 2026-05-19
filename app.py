@@ -3,7 +3,7 @@ import yfinance as yf
 import pandas as pd
 import time
 from datetime import datetime
-from functions import check_daily_alarm, check_period_alarm, get_trend, get_thresholds, format_period
+from functions import check_daily_alarm, check_period_alarm, get_trend, get_thresholds, format_period, get_rsi
 import plotly.graph_objects as go
 
 st.set_page_config(
@@ -16,18 +16,18 @@ st.set_page_config(
 lang = st.selectbox("🌐 Language", ["English", "Türkçe"], label_visibility="collapsed")
 
 labels = {
-    "English": { "title": "Asset Monitor",
+    "English": {
+        "title": "Asset Monitor",
         "caption": "Live prices, alerts and trend analysis for USD/TRY, EUR/TRY, GBP/TRY and Gold",
+        "tab_main": "🏠 Main",
+        "tab_rsi": "📈 RSI",
+        "tab_drawdown": "📉 Drawdown",
         "last_updated": "Last updated",
         "select_assets": "Select assets to display",
         "no_asset_warning": "Please select at least one asset.",
-
-        # Chart
         "chart": "📊 Chart",
         "period": "Period",
         "period_options": ["1 Week", "1 Month", "3 Months", "6 Months", "1 Year"],
-
-        # Trend
         "trend_label": "📈 Trend",
         "uptrend": "Uptrend ↑",
         "downtrend": "Downtrend ↓",
@@ -35,24 +35,18 @@ labels = {
         "accelerating": "Accelerating ↑",
         "slowing": "Slowing ↓",
         "stable": "Stable",
-
-        # Period table
         "period_label": "📊 Period",
         "period_col": "Period",
         "status_col": "Status",
         "30d": "30 Days",
         "52w": "52 Weeks",
         "5y": "5 Years",
-
-        # Projection
         "projection_label": "🔮 Projection",
         "scenario_col": "Scenario",
         "price_col": "Price",
         "best_case": "🟢 Best Case",
         "base": "🟡 Base",
         "worst_case": "🔴 Worst Case",
-
-        # Alarms
         "no_change": "No Significant Change",
         "critical_up": "CRITICAL UP",
         "warning_up": "WARNING UP",
@@ -60,28 +54,25 @@ labels = {
         "critical_down": "CRITICAL DOWN",
         "warning_down": "WARNING DOWN",
         "caution_down": "CAUTION DOWN",
-
-        # Period alarm
         "new_peak": "NEW PEAK",
         "near_peak": "Near Peak",
         "new_bottom": "NEW BOTTOM",
         "near_bottom": "Near Bottom",
         "mid_range": "Mid Range",
-
-        # Info expander
-        "info_title": "ℹ️ How does this app work?", },
-    "Türkçe": { "title": "Varlık Takip",
+        "info_title": "ℹ️ How does this app work?",
+    },
+    "Türkçe": {
+        "title": "Varlık Takip",
         "caption": "USD/TRY, EUR/TRY, GBP/TRY ve Altın için canlı fiyat, alarm ve trend analizi",
+        "tab_main": "🏠 Ana Sayfa",
+        "tab_rsi": "📈 RSI",
+        "tab_drawdown": "📉 Drawdown",
         "last_updated": "Son güncelleme",
         "select_assets": "Görüntülenecek varlıkları seçin",
         "no_asset_warning": "Lütfen en az bir varlık seçin.",
-
-        # Chart
         "chart": "📊 Grafik",
         "period": "Dönem",
         "period_options": ["1 Hafta", "1 Ay", "3 Ay", "6 Ay", "1 Yıl"],
-
-        # Trend
         "trend_label": "📈 Trend",
         "uptrend": "Yükseliş ↑",
         "downtrend": "Düşüş ↓",
@@ -89,24 +80,18 @@ labels = {
         "accelerating": "Hızlanıyor ↑",
         "slowing": "Yavaşlıyor ↓",
         "stable": "Stabil",
-
-        # Period table
         "period_label": "📊 Dönem",
         "period_col": "Dönem",
         "status_col": "Durum",
         "30d": "30 Gün",
         "52w": "52 Hafta",
         "5y": "5 Yıl",
-
-        # Projection
         "projection_label": "🔮 Projeksiyon",
         "scenario_col": "Senaryo",
         "price_col": "Fiyat",
         "best_case": "🟢 En İyi Senaryo",
         "base": "🟡 Baz",
         "worst_case": "🔴 En Kötü Senaryo",
-
-        # Alarms
         "no_change": "Önemli Değişim Yok",
         "critical_up": "KRİTİK YÜKSELİŞ",
         "warning_up": "UYARI YÜKSELİŞ",
@@ -114,16 +99,13 @@ labels = {
         "critical_down": "KRİTİK DÜŞÜŞ",
         "warning_down": "UYARI DÜŞÜŞ",
         "caution_down": "DİKKAT DÜŞÜŞ",
-
-        # Period alarm
         "new_peak": "YENİ ZİRVE",
         "near_peak": "Zirveye Yakın",
         "new_bottom": "YENİ DİP",
         "near_bottom": "Dibe Yakın",
         "mid_range": "Orta Bölge",
-
-        # Info expander
-        "info_title": "ℹ️ Bu uygulama nasıl çalışır?" }
+        "info_title": "ℹ️ Bu uygulama nasıl çalışır?",
+    }
 }
 
 t = labels[lang]
@@ -210,187 +192,197 @@ selected = st.multiselect(
 
 if not selected:
     st.warning(t['no_asset_warning'])
+    st.stop()
 
-# ── Asset Cards ───────────────────────────────────────────────────────────────
-cols = st.columns(len(selected))
-for i, a in enumerate(selected):
-    with cols[i]:
-        price  = live_prices[a]
-        change = daily_change_pct[a]
+# ── Tabs ──────────────────────────────────────────────────────────────────────
+tab1, tab2, tab3 = st.tabs([
+    t['tab_main'],
+    t['tab_rsi'],
+    t['tab_drawdown']
+])
 
-        # Price & daily change
-        if price and not pd.isna(yesterday[a]):
-            st.metric(
-                label=a,
-                value=display_names[a].format(price),
-                delta=f"{change:.2f}%" if change else "N/A"
-            )
-        else:
-            st.metric(label=a, value="N/A")
+# ── Tab 1: Main ───────────────────────────────────────────────────────────────
+with tab1:
+    cols = st.columns(len(selected))
+    for i, a in enumerate(selected):
+        with cols[i]:
+            price  = live_prices[a]
+            change = daily_change_pct[a]
 
-        # Chart
-        with st.expander(t['chart']):
-            period = st.selectbox(
-                t['period'],
-                t['period_options'],
-                key=f"period_{a}"
-            )
-            period_map = dict(zip(t['period_options'], [7, 30, 90, 180, 252]))
-            days = period_map[period]
-            chart_data = close[a].tail(days)
-            fig = go.Figure()
-            fig.add_trace(go.Scatter(x=chart_data.index, y=chart_data.values, mode='lines', name=a))
-            fig.update_layout(margin=dict(l=0, r=0, t=0, b=0), height=250)
-            st.plotly_chart(fig, use_container_width=True)
-
-        # Daily alarm
-        if change is not None:
-            alarm = check_daily_alarm(change, thresholds[a], t)
-            if t['critical_up'] in alarm or t['critical_down'] in alarm:
-                st.error(f"🚨 {alarm}")
-            elif t['warning_up'] in alarm or t['warning_down'] in alarm:
-                st.warning(f"⚠️ {alarm}")
-            elif t['caution_up'] in alarm or t['caution_down'] in alarm:
-                st.warning(f"⚠️ {alarm}")
+            if price and not pd.isna(yesterday[a]):
+                st.metric(
+                    label=a,
+                    value=display_names[a].format(price),
+                    delta=f"{change:.2f}%" if change else "N/A"
+                )
             else:
-                st.success(f"✅ {alarm}")
+                st.metric(label=a, value="N/A")
 
-        st.divider()
+            with st.expander(t['chart']):
+                period = st.selectbox(
+                    t['period'],
+                    t['period_options'],
+                    key=f"period_{a}"
+                )
+                period_map = dict(zip(t['period_options'], [7, 30, 90, 180, 252]))
+                days = period_map[period]
+                chart_data = close[a].tail(days)
+                fig = go.Figure()
+                fig.add_trace(go.Scatter(x=chart_data.index, y=chart_data.values, mode='lines', name=a))
+                fig.update_layout(margin=dict(l=0, r=0, t=0, b=0), height=250)
+                st.plotly_chart(fig, use_container_width=True)
 
-        # Trend
-        trend, momentum = get_trend(ma_3, ma_7, ma_30, a, t)
-        st.markdown(f"**{t['trend_label']}:** {trend} / {momentum}")
+            if change is not None:
+                alarm = check_daily_alarm(change, thresholds[a], t)
+                if t['critical_up'] in alarm or t['critical_down'] in alarm:
+                    st.error(f"🚨 {alarm}")
+                elif t['warning_up'] in alarm or t['warning_down'] in alarm:
+                    st.warning(f"⚠️ {alarm}")
+                elif t['caution_up'] in alarm or t['caution_down'] in alarm:
+                    st.warning(f"⚠️ {alarm}")
+                else:
+                    st.success(f"✅ {alarm}")
 
-        st.divider()
+            st.divider()
 
-        # Period alarms
-        p30 = format_period(check_period_alarm(price, high_30d[a], low_30d[a], t), high_30d[a], low_30d[a], price, t)
-        p52 = format_period(check_period_alarm(price, high_52w[a], low_52w[a], t), high_52w[a], low_52w[a], price, t)
-        p5y = format_period(check_period_alarm(price, high_5y[a], low_5y[a], t), high_5y[a], low_5y[a], price, t)
+            trend, momentum = get_trend(ma_3, ma_7, ma_30, a, t)
+            st.markdown(f"**{t['trend_label']}:** {trend} / {momentum}")
 
-        st.markdown(f"**{t['period_label']}:**")
-        st.dataframe(
-            pd.DataFrame(
-                [[t['30d'], p30], [t['52w'], p52], [t['5y'], p5y]],
-                columns=[t['period_col'], t['status_col']]
-            ),
-            hide_index=True,
-            use_container_width=True
-        )
+            st.divider()
 
-        st.divider()
+            p30 = format_period(check_period_alarm(price, high_30d[a], low_30d[a], t), high_30d[a], low_30d[a], price, t)
+            p52 = format_period(check_period_alarm(price, high_52w[a], low_52w[a], t), high_52w[a], low_52w[a], price, t)
+            p5y = format_period(check_period_alarm(price, high_5y[a], low_5y[a], t), high_5y[a], low_5y[a], price, t)
 
-        # Projection
-        roc         = close[a].pct_change(30, fill_method=None).dropna() * 100
-        current_roc = roc.tail(7).mean()
-        scenario_lo = round(price * (1 + (current_roc * 0.5) / 100), 2)
-        base        = round(price * (1 + (current_roc * 1.0) / 100), 2)
-        scenario_hi = round(price * (1 + (current_roc * 1.5) / 100), 2)
-        best_case   = max(scenario_lo, scenario_hi)
-        worst_case  = min(scenario_lo, scenario_hi)
-        st.markdown(f"**{t['projection_label']}:**")
-        st.dataframe(
-            pd.DataFrame({
-                t['scenario_col']: [t['best_case'], t['base'], t['worst_case']],
-                t['price_col']: [best_case, base, worst_case]
-            }),
-            hide_index=True,
-            use_container_width=True
-        )
+            st.markdown(f"**{t['period_label']}:**")
+            st.dataframe(
+                pd.DataFrame(
+                    [[t['30d'], p30], [t['52w'], p52], [t['5y'], p5y]],
+                    columns=[t['period_col'], t['status_col']]
+                ),
+                hide_index=True,
+                use_container_width=True
+            )
 
-# ── Info ──────────────────────────────────────────────────────────────────────
-st.divider()
-with st.expander(t['info_title']):
-    if lang == "English":
-        st.write("""
-        **What is this app?**
-        This app tracks live prices for USD/TRY, EUR/TRY, GBP/TRY and Gold. 
-        It automatically refreshes every 60 seconds.
+            st.divider()
 
-        ---
+            roc         = close[a].pct_change(30, fill_method=None).dropna() * 100
+            current_roc = roc.tail(7).mean()
+            scenario_lo = round(price * (1 + (current_roc * 0.5) / 100), 2)
+            base        = round(price * (1 + (current_roc * 1.0) / 100), 2)
+            scenario_hi = round(price * (1 + (current_roc * 1.5) / 100), 2)
+            best_case   = max(scenario_lo, scenario_hi)
+            worst_case  = min(scenario_lo, scenario_hi)
+            st.markdown(f"**{t['projection_label']}:**")
+            st.dataframe(
+                pd.DataFrame({
+                    t['scenario_col']: [t['best_case'], t['base'], t['worst_case']],
+                    t['price_col']: [best_case, base, worst_case]
+                }),
+                hide_index=True,
+                use_container_width=True
+            )
 
-        **💰 Live Prices**
-        Shows the current market price and the daily change (%) compared to yesterday's closing price.
-        🔴 Red = price dropped today | 🟢 Green = price rose today
+    st.divider()
+    with st.expander(t['info_title']):
+        if lang == "English":
+            st.write("""
+            **What is this app?**
+            This app tracks live prices for USD/TRY, EUR/TRY, GBP/TRY and Gold.
+            It automatically refreshes every 60 seconds.
 
-        ---
+            ---
 
-        **🚨 Daily Alarm**
-        Alerts you when today's price movement is unusually large.
-        Thresholds are calculated from 1 year of historical data using statistics:
-        - ✅ No Significant Change → Normal movement
-        - ⚠️ Caution → Slightly above average movement
-        - ⚠️ Warning → Notably above average movement  
-        - 🚨 Critical → Extreme movement, very rare
+            **💰 Live Prices**
+            Shows the current market price and the daily change (%) compared to yesterday's closing price.
+            🔴 Red = price dropped today | 🟢 Green = price rose today
 
-        ---
+            ---
 
-        **📊 Period Alarms**
-        Shows where the current price stands compared to recent highs and lows:
-        - 30-Day: compared to the last 30 days
-        - 52-Week: compared to the last 52 weeks
-        - 5-Year: compared to the last 5 years
+            **🚨 Daily Alarm**
+            Alerts you when today's price movement is unusually large.
+            Thresholds are calculated from 1 year of historical data using statistics:
+            - ✅ No Significant Change → Normal movement
+            - ⚠️ Caution → Slightly above average movement
+            - ⚠️ Warning → Notably above average movement
+            - 🚨 Critical → Extreme movement, very rare
 
-        ---
+            ---
 
-        **📈 Trend Analysis**
-        - Uptrend / Downtrend / Neutral based on 7-day vs 30-day average
-        - Accelerating / Slowing based on 3-day vs 7-day average
+            **📊 Period Alarms**
+            Shows where the current price stands compared to recent highs and lows:
+            - 30-Day: compared to the last 30 days
+            - 52-Week: compared to the last 52 weeks
+            - 5-Year: compared to the last 5 years
 
-        ---
+            ---
 
-        **🔮 30-Day Projection**
-        Not a forecast. Shows where the price might go if the current trend continues.
-        Trend is calculated as a 7-day average of the 30-day rate of change for stability:
-        - 🟢 Best Case: most favorable price direction
-        - 🟡 Base: current trend continues at the same pace
-        - 🔴 Worst Case: least favorable price direction
-        """)
-    else:
-        st.write("""
-        **Bu uygulama ne işe yarar?**
-        USD/TRY, EUR/TRY, GBP/TRY ve Altın için canlı fiyatları takip eder.
-        Her 60 saniyede bir otomatik güncellenir.
+            **📈 Trend Analysis**
+            - Uptrend / Downtrend / Neutral based on 7-day vs 30-day average
+            - Accelerating / Slowing based on 3-day vs 7-day average
 
-        ---
+            ---
 
-        **💰 Canlı Fiyatlar**
-        Güncel piyasa fiyatını ve dünün kapanışına göre günlük değişimi (%) gösterir.
-        🔴 Kırmızı = fiyat düştü | 🟢 Yeşil = fiyat yükseldi
+            **🔮 30-Day Projection**
+            Not a forecast. Shows where the price might go if the current trend continues.
+            Trend is calculated as a 7-day average of the 30-day rate of change for stability:
+            - 🟢 Best Case: most favorable price direction
+            - 🟡 Base: current trend continues at the same pace
+            - 🔴 Worst Case: least favorable price direction
+            """)
+        else:
+            st.write("""
+            **Bu uygulama ne işe yarar?**
+            USD/TRY, EUR/TRY, GBP/TRY ve Altın için canlı fiyatları takip eder.
+            Her 60 saniyede bir otomatik güncellenir.
 
-        ---
+            ---
 
-        **🚨 Günlük Alarm**
-        Günlük fiyat hareketi alışılmadık büyüklükte olduğunda uyarır.
-        Eşikler 1 yıllık geçmiş veriden istatistiksel olarak hesaplanır:
-        - ✅ Önemli Değişim Yok → Normal hareket
-        - ⚠️ Dikkat → Ortalamanın biraz üzerinde
-        - ⚠️ Uyarı → Belirgin şekilde yüksek hareket
-        - 🚨 Kritik → Çok nadir görülen aşırı hareket
+            **💰 Canlı Fiyatlar**
+            Güncel piyasa fiyatını ve dünün kapanışına göre günlük değişimi (%) gösterir.
+            🔴 Kırmızı = fiyat düştü | 🟢 Yeşil = fiyat yükseldi
 
-        ---
+            ---
 
-        **📊 Dönem Alarmlari**
-        Güncel fiyatın son yüksek ve düşüklere göre nerede olduğunu gösterir:
-        - 30 Gün: son 30 günle karşılaştırma
-        - 52 Hafta: son 52 haftayla karşılaştırma
-        - 5 Yıl: son 5 yılla karşılaştırma
+            **🚨 Günlük Alarm**
+            Günlük fiyat hareketi alışılmadık büyüklükte olduğunda uyarır.
+            Eşikler 1 yıllık geçmiş veriden istatistiksel olarak hesaplanır:
+            - ✅ Önemli Değişim Yok → Normal hareket
+            - ⚠️ Dikkat → Ortalamanın biraz üzerinde
+            - ⚠️ Uyarı → Belirgin şekilde yüksek hareket
+            - 🚨 Kritik → Çok nadir görülen aşırı hareket
 
-        ---
+            ---
 
-        **📈 Trend Analizi**
-        - 7 günlük ve 30 günlük ortalamaya göre Yükseliş / Düşüş / Yatay
-        - 3 günlük ve 7 günlük ortalamaya göre Hızlanıyor / Yavaşlıyor
+            **📊 Dönem Alarmlari**
+            Güncel fiyatın son yüksek ve düşüklere göre nerede olduğunu gösterir:
+            - 30 Gün: son 30 günle karşılaştırma
+            - 52 Hafta: son 52 haftayla karşılaştırma
+            - 5 Yıl: son 5 yılla karşılaştırma
 
-        ---
+            ---
 
-        **🔮 30 Günlük Projeksiyon**
-        Tahmin değildir. Mevcut trendin devam etmesi durumunda fiyatın nereye gidebileceğini gösterir.
-        Trend, kararlılık için 30 günlük değişim oranının 7 günlük ortalaması olarak hesaplanır:
-        - 🟢 En İyi Senaryo: en olumlu fiyat yönü
-        - 🟡 Baz: mevcut trend aynı hızda devam eder
-        - 🔴 En Kötü Senaryo: en olumsuz fiyat yönü
-        """)
+            **📈 Trend Analizi**
+            - 7 günlük ve 30 günlük ortalamaya göre Yükseliş / Düşüş / Yatay
+            - 3 günlük ve 7 günlük ortalamaya göre Hızlanıyor / Yavaşlıyor
+
+            ---
+
+            **🔮 30 Günlük Projeksiyon**
+            Tahmin değildir. Mevcut trendin devam etmesi durumunda fiyatın nereye gidebileceğini gösterir.
+            Trend, kararlılık için 30 günlük değişim oranının 7 günlük ortalaması olarak hesaplanır:
+            - 🟢 En İyi Senaryo: en olumlu fiyat yönü
+            - 🟡 Baz: mevcut trend aynı hızda devam eder
+            - 🔴 En Kötü Senaryo: en olumsuz fiyat yönü
+            """)
+
+# ── Tab 2: RSI ────────────────────────────────────────────────────────────────
+with tab2:
+    st.info("RSI coming soon...")
+
+# ── Tab 3: Drawdown ───────────────────────────────────────────────────────────
+with tab3:
+    st.info("Drawdown coming soon...")
 
 # ── Auto Refresh ──────────────────────────────────────────────────────────────
 time.sleep(60)
