@@ -1,53 +1,53 @@
 import pandas as pd
 
-def check_daily_alarm(change, thresholds):
+def check_daily_alarm(change, thresholds, t):
     if pd.isna(change):
         return 'No Data'
     elif change >= thresholds['Critical_up']:
-        return 'CRITICAL UP'
+        return t['critical_up']
     elif change >= thresholds['Warning_up']:
-        return 'WARNING UP'
+        return t['warning_up']
     elif change >= thresholds['Caution_up']:
-        return 'CAUTION UP'
+        return t['caution_up']
     elif change <= thresholds['Critical_down']:
-        return 'CRITICAL DOWN'
+        return t['critical_down']
     elif change <= thresholds['Warning_down']:
-        return 'WARNING DOWN'
+        return t['warning_down']
     elif change <= thresholds['Caution_down']:
-        return 'CAUTION DOWN'
+        return t['caution_down']
     else:
-        return 'No Significant Change'
+        return t['no_change']
 
 
-def check_period_alarm(current_price, high, low):
+def check_period_alarm(current_price, high, low, t):
     if current_price is None or pd.isna(current_price):
         return 'No Data'
     pct_from_high = ((high - current_price) / high) * 100
     pct_from_low  = ((current_price - low) / low) * 100
     if current_price >= high:
-        return 'NEW PEAK'
+        return t['new_peak']
     elif pct_from_high <= 1:
-        return f'Near Peak — {pct_from_high:.2f}% Below Peak'
+        return f"{t['near_peak']} — {pct_from_high:.2f}% Below Peak"
     elif current_price <= low:
-        return 'NEW BOTTOM'
+        return t['new_bottom']
     elif pct_from_low <= 1:
-        return f'Near Bottom — {pct_from_low:.2f}% Above Bottom'
+        return f"{t['near_bottom']} — {pct_from_low:.2f}% Above Bottom"
     else:
-        return f'Mid Range — {pct_from_high:.2f}% Below Peak'
+        return f"{t['mid_range']} — {pct_from_high:.2f}% Below Peak"
 
-def get_trend(ma_3, ma_7, ma_30, asset):
+def get_trend(ma_3, ma_7, ma_30, asset, t):
     if ma_7[asset] > ma_30[asset] * 1.005:
-        trend = 'Uptrend ↑'
+        trend = t['uptrend']
     elif ma_7[asset] < ma_30[asset] * 0.995:
-        trend = 'Downtrend ↓'
+        trend = t['downtrend']
     else:
-        trend = 'Neutral →'
+        trend = t['neutral']
     if ma_3[asset] > ma_7[asset]:
-        momentum = 'Accelerating ↑'
+        momentum = t['accelerating']
     elif ma_3[asset] < ma_7[asset]:
-        momentum = 'Slowing ↓'
+        momentum = t['slowing']
     else:
-        momentum = 'Stable'
+        momentum = t['stable']
     return trend, momentum
 
 def get_thresholds(daily_change):
@@ -67,16 +67,16 @@ def get_thresholds(daily_change):
         }
     return thresholds
 
-def format_period(alarm, high, low, price):
-    if 'NEW PEAK' in alarm or 'Near Peak' in alarm:
+def format_period(alarm, high, low, price, t):
+    if t['new_peak'] in alarm or t['near_peak'] in alarm:
         emoji = '🔴'
-        status = 'Near Peak'
-    elif 'NEW BOTTOM' in alarm or 'Near Bottom' in alarm:
+        status = t['near_peak']
+    elif t['new_bottom'] in alarm or t['near_bottom'] in alarm:
         emoji = '🟠'
-        status = 'Near Bottom'
+        status = t['near_bottom']
     else:
         emoji = '🟢'
-        status = 'Mid Range'
+        status = t['mid_range']
     return f"{emoji} {status} / Peak: {high:.2f} / Now: {price:.2f}"
 
 
