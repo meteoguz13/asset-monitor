@@ -16,8 +16,114 @@ st.set_page_config(
 lang = st.selectbox("🌐 Language", ["English", "Türkçe"], label_visibility="collapsed")
 
 labels = {
-    "English": { ... },  # az önce yazdığım sözlük
-    "Türkçe": { ... }
+    "English": { "title": "Asset Monitor",
+        "caption": "Live prices, alerts and trend analysis for USD/TRY, EUR/TRY, GBP/TRY and Gold",
+        "last_updated": "Last updated",
+        "select_assets": "Select assets to display",
+        "no_asset_warning": "Please select at least one asset.",
+
+        # Chart
+        "chart": "📊 Chart",
+        "period": "Period",
+        "period_options": ["1 Week", "1 Month", "3 Months", "6 Months", "1 Year"],
+
+        # Trend
+        "trend_label": "📈 Trend",
+        "uptrend": "Uptrend ↑",
+        "downtrend": "Downtrend ↓",
+        "neutral": "Neutral →",
+        "accelerating": "Accelerating ↑",
+        "slowing": "Slowing ↓",
+        "stable": "Stable",
+
+        # Period table
+        "period_label": "📊 Period",
+        "period_col": "Period",
+        "status_col": "Status",
+        "30d": "30 Days",
+        "52w": "52 Weeks",
+        "5y": "5 Years",
+
+        # Projection
+        "projection_label": "🔮 Projection",
+        "scenario_col": "Scenario",
+        "price_col": "Price",
+        "best_case": "🟢 Best Case",
+        "base": "🟡 Base",
+        "worst_case": "🔴 Worst Case",
+
+        # Alarms
+        "no_change": "No Significant Change",
+        "critical_up": "CRITICAL UP",
+        "warning_up": "WARNING UP",
+        "caution_up": "CAUTION UP",
+        "critical_down": "CRITICAL DOWN",
+        "warning_down": "WARNING DOWN",
+        "caution_down": "CAUTION DOWN",
+
+        # Period alarm
+        "new_peak": "NEW PEAK",
+        "near_peak": "Near Peak",
+        "new_bottom": "NEW BOTTOM",
+        "near_bottom": "Near Bottom",
+        "mid_range": "Mid Range",
+
+        # Info expander
+        "info_title": "ℹ️ How does this app work?", },
+    "Türkçe": { "title": "Varlık Takip",
+        "caption": "USD/TRY, EUR/TRY, GBP/TRY ve Altın için canlı fiyat, alarm ve trend analizi",
+        "last_updated": "Son güncelleme",
+        "select_assets": "Görüntülenecek varlıkları seçin",
+        "no_asset_warning": "Lütfen en az bir varlık seçin.",
+
+        # Chart
+        "chart": "📊 Grafik",
+        "period": "Dönem",
+        "period_options": ["1 Hafta", "1 Ay", "3 Ay", "6 Ay", "1 Yıl"],
+
+        # Trend
+        "trend_label": "📈 Trend",
+        "uptrend": "Yükseliş ↑",
+        "downtrend": "Düşüş ↓",
+        "neutral": "Yatay →",
+        "accelerating": "Hızlanıyor ↑",
+        "slowing": "Yavaşlıyor ↓",
+        "stable": "Stabil",
+
+        # Period table
+        "period_label": "📊 Dönem",
+        "period_col": "Dönem",
+        "status_col": "Durum",
+        "30d": "30 Gün",
+        "52w": "52 Hafta",
+        "5y": "5 Yıl",
+
+        # Projection
+        "projection_label": "🔮 Projeksiyon",
+        "scenario_col": "Senaryo",
+        "price_col": "Fiyat",
+        "best_case": "🟢 En İyi Senaryo",
+        "base": "🟡 Baz",
+        "worst_case": "🔴 En Kötü Senaryo",
+
+        # Alarms
+        "no_change": "Önemli Değişim Yok",
+        "critical_up": "KRİTİK YÜKSELİŞ",
+        "warning_up": "UYARI YÜKSELİŞ",
+        "caution_up": "DİKKAT YÜKSELİŞ",
+        "critical_down": "KRİTİK DÜŞÜŞ",
+        "warning_down": "UYARI DÜŞÜŞ",
+        "caution_down": "DİKKAT DÜŞÜŞ",
+
+        # Period alarm
+        "new_peak": "YENİ ZİRVE",
+        "near_peak": "Zirveye Yakın",
+        "new_bottom": "YENİ DİP",
+        "near_bottom": "Dibe Yakın",
+        "mid_range": "Orta Bölge",
+
+        # Info expander
+        "info_title": "ℹ️ Bu uygulama nasıl çalışır?" }
 }
 
 t = labels[lang]
