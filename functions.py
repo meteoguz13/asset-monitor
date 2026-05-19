@@ -81,3 +81,19 @@ def format_period(alarm, high, low, price, t):
         emoji = '🟢'
         status = t['mid_range']
     return f"{emoji} {status} / Peak: {high:.2f} / Now: {price:.2f}"
+
+def get_rsi(close_series, period=14):
+    delta = close_series.diff()
+    gain  = delta.clip(lower=0).rolling(period).mean()
+    loss  = (-delta.clip(upper=0)).rolling(period).mean()
+    rs    = gain / loss
+    rsi   = 100 - (100/(1+rs))
+    return rsi
+
+
+
+
+
+
+
+
