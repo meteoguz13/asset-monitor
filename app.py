@@ -6,6 +6,12 @@ from datetime import datetime
 from functions import check_daily_alarm, check_period_alarm, get_trend, get_thresholds, format_period
 import plotly.graph_objects as go
 
+st.set_page_config(
+    page_title="Asset Monitor",
+    page_icon="📈",
+    layout="wide"
+)
+
 # ── Language ──────────────────────────────────────────────────────────────────
 lang = st.selectbox("🌐 Language", ["English", "Türkçe"], label_visibility="collapsed")
 
@@ -15,12 +21,6 @@ labels = {
 }
 
 t = labels[lang]
-
-st.set_page_config(
-    page_title="Asset Monitor",
-    page_icon="📈",
-    layout="wide"
-)
 
 st.title(f"📈 {t['title']}")
 st.caption(t['caption'])
