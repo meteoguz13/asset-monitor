@@ -35,6 +35,7 @@ def check_period_alarm(current_price, high, low, t):
     else:
         return f"{t['mid_range']} — {pct_from_high:.2f}% Below Peak"
 
+
 def get_trend(ma_3, ma_7, ma_30, asset, t):
     if ma_7[asset] > ma_30[asset] * 1.005:
         trend = t['uptrend']
@@ -50,6 +51,7 @@ def get_trend(ma_3, ma_7, ma_30, asset, t):
         momentum = t['stable']
     return trend, momentum
 
+
 def get_thresholds(daily_change):
     thresholds = {}
     for a in daily_change.columns:
@@ -58,14 +60,15 @@ def get_thresholds(daily_change):
         neg_mean = daily_change[a][daily_change[a] < 0].mean()
         neg_std  = daily_change[a][daily_change[a] < 0].std()
         thresholds[a] = {
-            'Caution_up':   round(pos_mean + 1 * pos_std, 2),
-            'Warning_up':   round(pos_mean + 2 * pos_std, 2),
-            'Critical_up':  round(pos_mean + 3 * pos_std, 2),
+            'Caution_up':    round(pos_mean + 1 * pos_std, 2),
+            'Warning_up':    round(pos_mean + 2 * pos_std, 2),
+            'Critical_up':   round(pos_mean + 3 * pos_std, 2),
             'Caution_down':  round(neg_mean - 1 * neg_std, 2),
             'Warning_down':  round(neg_mean - 2 * neg_std, 2),
             'Critical_down': round(neg_mean - 3 * neg_std, 2)
         }
     return thresholds
+
 
 def format_period(alarm, high, low, price, t):
     if t['new_peak'] in alarm or t['near_peak'] in alarm:
@@ -78,8 +81,3 @@ def format_period(alarm, high, low, price, t):
         emoji = '🟢'
         status = t['mid_range']
     return f"{emoji} {status} / Peak: {high:.2f} / Now: {price:.2f}"
-
-
-
-
-
