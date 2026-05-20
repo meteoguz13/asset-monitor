@@ -18,6 +18,7 @@ lang = st.selectbox("🌐 Language", ["English", "Türkçe"], label_visibility="
 labels = {
     "English": {
         "title": "Asset Monitor",
+        "rsi_info": "ℹ️ What is RSI?",
         "caption": "Live prices, alerts and trend analysis for USD/TRY, EUR/TRY, GBP/TRY and Gold",
         "tab_main": "🏠 Main",
         "tab_rsi": "📈 RSI",
@@ -71,6 +72,7 @@ labels = {
         "tab_main": "🏠 Ana Sayfa",
         "tab_rsi": "📈 RSI",
         "tab_drawdown": "📉 Drawdown",
+        "rsi_info": "ℹ️ RSI Nedir?",
         "last_updated": "Son güncelleme",
         "select_assets": "Görüntülenecek varlıkları seçin",
         "no_asset_warning": "Lütfen en az bir varlık seçin.",
@@ -400,6 +402,24 @@ with tab2:
             st.markdown(f"**{a}**")
             st.metric(label="RSI", value=f"{rsi_value:.1f}")
             st.write(yorum)
+
+with st.expander(t['rsi_info']):
+    if lang == "English":
+        st.write("""
+        RSI measures how fast and how much a price has moved in the last 14 days.
+
+        - 🔴 Above 70 → Price rose too fast → may slow down soon
+        - 🟢 Below 30 → Price dropped too fast → may recover soon  
+        - 🟡 Between 30-70 → Normal movement
+        """)
+    else:
+        st.write("""
+        RSI son 14 günde fiyatın ne kadar hızlı hareket ettiğini ölçer.
+
+        - 🔴 70 üzeri → Fiyat çok hızlı yükseldi → yavaşlayabilir
+        - 🟢 30 altı → Fiyat çok hızlı düştü → toparlanabilir
+        - 🟡 30-70 arası → Normal hareket
+        """)
 
 # ── Tab 3: Drawdown ───────────────────────────────────────────────────────────
 with tab3:
