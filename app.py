@@ -402,6 +402,22 @@ with tab2:
             st.markdown(f"**{a}**")
             st.metric(label="RSI", value=f"{rsi_value:.1f}")
             st.write(yorum)
+fig = go.Figure(go.Indicator(
+    mode="gauge+number",
+    value=rsi_value,
+    gauge={
+        'axis': {'range': [0, 100]},
+        'bar': {'color': "darkblue"},
+        'steps': [
+            {'range': [0, 30], 'color': "orange"},
+            {'range': [30, 70], 'color': "green"},
+            {'range': [70, 100], 'color': "red"}
+        ],
+    }
+))
+fig.update_layout(margin=dict(l=0, r=0, t=0, b=0), height=200)
+st.plotly_chart(fig, use_container_width=True)
+
 
 with st.expander(t['rsi_info']):
     if lang == "English":
