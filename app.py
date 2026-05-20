@@ -64,7 +64,7 @@ labels = {
         "rsi_title": "RSI Analysis",
         "overbought": "🔴️ Overbought",
         "oversold": "🟠 Oversold",
-        "neutral": "🟡 Neutral",
+        "neutral": "🟢 Neutral",
     },
     "Türkçe": {
         "title": "Varlık Takip",
@@ -114,7 +114,7 @@ labels = {
         "rsi_title": "RSI Analizi",
         "overbought": "🔴️ Aşırı Alım",
         "oversold": "🟠 Aşırı Satım",
-        "neutral": "🟡  Nötr",
+        "neutral": "🟢  Nötr",
     }
 }
 
