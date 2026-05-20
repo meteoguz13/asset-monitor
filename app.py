@@ -62,8 +62,8 @@ labels = {
         "mid_range": "Mid Range",
         "info_title": "ℹ️ How does this app work?",
         "rsi_title": "RSI Analysis",
-        "overbought": "⚠️ Overbought",
-        "oversold": "⚠️ Oversold",
+        "overbought": "🔴️ Overbought",
+        "oversold": "🟠 Oversold",
         "neutral": "🟡 Neutral",
     },
     "Türkçe": {
@@ -112,8 +112,8 @@ labels = {
         "mid_range": "Orta Bölge",
         "info_title": "ℹ️ Bu uygulama nasıl çalışır?",
         "rsi_title": "RSI Analizi",
-        "overbought": "⚠️ Aşırı Alım",
-        "oversold": "⚠️ Aşırı Satım",
+        "overbought": "🔴️ Aşırı Alım",
+        "oversold": "🟠 Aşırı Satım",
         "neutral": "🟡  Nötr",
     }
 }
@@ -409,7 +409,7 @@ with st.expander(t['rsi_info']):
         RSI measures how fast and how much a price has moved in the last 14 days.
 
         - 🔴 Above 70 → Price rose too fast → may slow down soon
-        - 🟢 Below 30 → Price dropped too fast → may recover soon  
+        - 🟠 Below 30 → Price dropped too fast → may recover soon  
         - 🟡 Between 30-70 → Normal movement
         """)
     else:
@@ -417,7 +417,7 @@ with st.expander(t['rsi_info']):
         RSI son 14 günde fiyatın ne kadar hızlı hareket ettiğini ölçer.
 
         - 🔴 70 üzeri → Fiyat çok hızlı yükseldi → yavaşlayabilir
-        - 🟢 30 altı → Fiyat çok hızlı düştü → toparlanabilir
+        - 🟠 30 altı → Fiyat çok hızlı düştü → toparlanabilir
         - 🟡 30-70 arası → Normal hareket
         """)
 
