@@ -416,8 +416,7 @@ fig = go.Figure(go.Indicator(
     }
 ))
 fig.update_layout(margin=dict(l=0, r=0, t=0, b=0), height=200)
-st.plotly_chart(fig, use_container_width=True)
-
+st.plotly_chart(fig, use_container_width=True, key=f"rsi_{a}")
 
 with st.expander(t['rsi_info']):
     if lang == "English":
