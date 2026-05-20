@@ -62,9 +62,9 @@ labels = {
         "mid_range": "Mid Range",
         "info_title": "ℹ️ How does this app work?",
         "rsi_title": "RSI Analysis",
-        "overbought": "🔴️ Overbought",
-        "oversold": "🟠 Oversold",
-        "neutral": "🟢 Neutral",
+        "overbought": "⚠️ Overbought",
+        "oversold": "⚠️ Oversold",
+        "neutral": "🔲 Neutral",
     },
     "Türkçe": {
         "title": "Varlık Takip",
@@ -112,9 +112,9 @@ labels = {
         "mid_range": "Orta Bölge",
         "info_title": "ℹ️ Bu uygulama nasıl çalışır?",
         "rsi_title": "RSI Analizi",
-        "overbought": "🔴️ Aşırı Alım",
-        "oversold": "🟠 Aşırı Satım",
-        "neutral": "🟢  Nötr",
+        "overbought": "⚠️ Aşırı Alım",
+        "oversold": "⚠️ Aşırı Satım",
+        "neutral": "🔲  Nötr",
     }
 }
 
@@ -393,30 +393,14 @@ with tab2:
     for i, a in enumerate(selected):
         with cols[i]:
             rsi_value = get_rsi(close[a]).iloc[-1]
-            if rsi_value >= 70:
-                yorum = t['overbought']
-            elif rsi_value <= 30:
-                yorum = t['oversold']
-            else:
-                yorum = t['neutral']
             st.markdown(f"**{a}**")
             st.metric(label="RSI", value=f"{rsi_value:.1f}")
-            st.write(yorum)
-fig = go.Figure(go.Indicator(
-    mode="gauge+number",
-    value=rsi_value,
-    gauge={
-        'axis': {'range': [0, 100]},
-        'bar': {'color': "darkblue"},
-        'steps': [
-            {'range': [0, 30], 'color': "orange"},
-            {'range': [30, 70], 'color': "green"},
-            {'range': [70, 100], 'color': "red"}
-        ],
-    }
-))
-fig.update_layout(margin=dict(l=0, r=0, t=0, b=0), height=200)
-st.plotly_chart(fig, use_container_width=True, key=f"rsi_{a}")
+            if rsi_value >= 70:
+                st.warning(t['overbought'])
+            elif rsi_value <= 30:
+                st.warning(t['oversold'])
+            else:
+                st.success(t['neutral'])
 
 with st.expander(t['rsi_info']):
     if lang == "English":
