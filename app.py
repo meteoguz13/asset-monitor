@@ -386,7 +386,7 @@ with tab1:
 
 # ── Tab 2: RSI ────────────────────────────────────────────────────────────────
 with tab2:
-    st.title(f"📈 {t['rsi_title']}")
+    st.subheader(f"📈 {t['rsi_title']}")
     cols = st.columns(len(selected))
     for i, a in enumerate(selected):
         with cols[i]:
