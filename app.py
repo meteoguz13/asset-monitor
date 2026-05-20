@@ -60,6 +60,10 @@ labels = {
         "near_bottom": "Near Bottom",
         "mid_range": "Mid Range",
         "info_title": "ℹ️ How does this app work?",
+        "rsi_title": "RSI Analysis",
+        "overbought": "⚠️ Overbought",
+        "oversold": "⚠️ Oversold",
+        "neutral": "🟡 Neutral",
     },
     "Türkçe": {
         "title": "Varlık Takip",
@@ -105,6 +109,10 @@ labels = {
         "near_bottom": "Dibe Yakın",
         "mid_range": "Orta Bölge",
         "info_title": "ℹ️ Bu uygulama nasıl çalışır?",
+        "rsi_title": "RSI Analizi",
+        "overbought": "⚠️ Aşırı Alım",
+        "oversold": "⚠️ Aşırı Satım",
+        "neutral": "🟡  Nötr",
     }
 }
 
@@ -378,7 +386,20 @@ with tab1:
 
 # ── Tab 2: RSI ────────────────────────────────────────────────────────────────
 with tab2:
-    st.info("RSI coming soon...")
+    st.title(f"📈 {t['rsi_title']}")
+    cols = st.columns(len(selected))
+    for i, a in enumerate(selected):
+        with cols[i]:
+            rsi_value = get_rsi(close[a]).iloc[-1]
+            if rsi_value >= 70:
+                yorum = t['overbought']
+            elif rsi_value <= 30:
+                yorum = t['oversold']
+            else:
+                yorum = t['neutral']
+            st.markdown(f"**{a}**")
+            st.metric(label="RSI", value=f"{rsi_value:.1f}")
+            st.write(yorum)
 
 # ── Tab 3: Drawdown ───────────────────────────────────────────────────────────
 with tab3:
