@@ -33,7 +33,7 @@ def check_period_alarm(current_price, high, low, t):
     elif pct_from_low <= 1:
         return f"{t['near_bottom']} — {pct_from_low:.2f}% Above Bottom"
     else:
-        return f"{t['mid_range']} — {pct_from_high:.2f}% Below Peak"
+        return t['mid_range']
 
 
 def get_trend(ma_3, ma_7, ma_30, asset, t):
@@ -74,12 +74,18 @@ def format_period(alarm, high, low, price, t):
     if t['new_peak'] in alarm or t['near_peak'] in alarm:
         emoji = '🔴'
         status = t['near_peak']
+        ref_price = high
+        ref_label = "Peak"
     elif t['new_bottom'] in alarm or t['near_bottom'] in alarm:
         emoji = '🟠'
         status = t['near_bottom']
+        ref_price = low
+        ref_label = "Bottom"
     else:
-        emoji = '🟢'
-        status = t['mid_range']
+        return f"🟢 {t['mid_range']} / Now: {price:.2f}"
+    return f"{emoji} {status} / {ref_label}: {ref_price:.2f} / Now: {price:.2f}"
+
+
     return f"{emoji} {status} / Peak: {high:.2f} / Now: {price:.2f}"
 
 def get_rsi(close_series, period=14):
