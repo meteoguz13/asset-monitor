@@ -410,7 +410,7 @@ with st.expander(t['rsi_info']):
 
         - 🔴 Above 70 → Price rose too fast → may slow down soon
         - 🟠 Below 30 → Price dropped too fast → may recover soon  
-        - 🟡 Between 30-70 → Normal movement
+        - 🟢 Between 30-70 → Normal movement
         """)
     else:
         st.write("""
@@ -418,7 +418,7 @@ with st.expander(t['rsi_info']):
 
         - 🔴 70 üzeri → Fiyat çok hızlı yükseldi → yavaşlayabilir
         - 🟠 30 altı → Fiyat çok hızlı düştü → toparlanabilir
-        - 🟡 30-70 arası → Normal hareket
+        - 🟢 30-70 arası → Normal hareket
         """)
 
 # ── Tab 3: Drawdown ───────────────────────────────────────────────────────────
