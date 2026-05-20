@@ -423,6 +423,23 @@ with st.expander(t['rsi_info']):
 # ── Tab 3: Drawdown ───────────────────────────────────────────────────────────
 with tab3:
     st.info("Drawdown coming soon...")
+with st.expander(t['"Drawdown coming soon..."']):
+    if lang == "English":
+        st.write("""
+        RSI measures how fast and how much a price has moved in the last 14 days.
+
+        - 🔴 Above 70 → Price rose too fast → may slow down soon
+        - 🟠 Below 30 → Price dropped too fast → may recover soon  
+        - 🟢 Between 30-70 → Normal movement
+        """)
+    else:
+        st.write("""
+        RSI son 14 günde fiyatın ne kadar hızlı hareket ettiğini ölçer.
+
+        - 🔴 70 üzeri → Fiyat çok hızlı yükseldi → yavaşlayabilir
+        - 🟠 30 altı → Fiyat çok hızlı düştü → toparlanabilir
+        - 🟢 30-70 arası → Normal hareket
+        """)
 
 # ── Auto Refresh ──────────────────────────────────────────────────────────────
 time.sleep(60)
