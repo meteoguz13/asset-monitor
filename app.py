@@ -6,6 +6,7 @@ from datetime import datetime
 from functions import check_daily_alarm, check_period_alarm, get_trend, get_thresholds, format_period, get_rsi
 import plotly.graph_objects as go
 
+
 st.set_page_config(
     page_title="Asset Monitor",
     page_icon="📈",
@@ -13,16 +14,14 @@ st.set_page_config(
 )
 
 # ── Language ──────────────────────────────────────────────────────────────────
-lang = st.selectbox("🌐 Language", ["English", "Türkçe"], label_visibility="collapsed")
-
+with st.sidebar:
+    lang = st.selectbox("🌐 Language", ["English", "Türkçe"])
 labels = {
     "English": {
         "title": "Asset Monitor",
-        "rsi_info": "ℹ️ What is RSI?",
         "caption": "Live prices, alerts and trend analysis for USD/TRY, EUR/TRY, GBP/TRY and Gold",
         "tab_main": "🏠 Main",
-        "tab_rsi": "📈 RSI",
-        "tab_drawdown": "📉 Drawdown",
+        "tab_gold_analysis": "🪙 Gold Analysis",
         "last_updated": "Last updated",
         "select_assets": "Select assets to display",
         "no_asset_warning": "Please select at least one asset.",
@@ -62,17 +61,23 @@ labels = {
         "mid_range": "Mid Range",
         "info_title": "ℹ️ How does this app work?",
         "rsi_title": "RSI Analysis",
-        "overbought": "⚠️ Overbought",
-        "oversold": "⚠️ Oversold",
-        "neutral": "🔲 Neutral",
+        "rsi_info": "ℹ️ What is RSI & Drawdown?",
+        "overbought": "🔴 Overbought — Price rose too fast",
+        "oversold": "🟠 Oversold — Price dropped too fast",
+        "rsi_neutral": "🟢 Normal range — No extreme movement",
+        "drawdown_title": "How Far From the Peak?",
+        "drawdown_peak": "🏔️ At Peak — No drawdown",
+        "drawdown_normal": "✅ Normal pullback — within safe range",
+        "drawdown_warning": "⚠️ Notable drop — monitor closely",
+        "drawdown_bear": "🔴 Bear territory — significant loss from peak",
+        "recovery_label": "To recover the loss: +",
+        "tab_cb": "🏦 Central Bank Rate Impact (TCMB/Fed)",
     },
     "Türkçe": {
         "title": "Varlık Takip",
         "caption": "USD/TRY, EUR/TRY, GBP/TRY ve Altın için canlı fiyat, alarm ve trend analizi",
         "tab_main": "🏠 Ana Sayfa",
-        "tab_rsi": "📈 RSI",
-        "tab_drawdown": "📉 Drawdown",
-        "rsi_info": "ℹ️ RSI Nedir?",
+        "tab_gold_analysis": "🪙 Altın Analizi",
         "last_updated": "Son güncelleme",
         "select_assets": "Görüntülenecek varlıkları seçin",
         "no_asset_warning": "Lütfen en az bir varlık seçin.",
@@ -112,9 +117,17 @@ labels = {
         "mid_range": "Orta Bölge",
         "info_title": "ℹ️ Bu uygulama nasıl çalışır?",
         "rsi_title": "RSI Analizi",
-        "overbought": "⚠️ Aşırı Alım",
-        "oversold": "⚠️ Aşırı Satım",
-        "neutral": "🔲  Nötr",
+        "rsi_info": "ℹ️ RSI ve Drawdown Nedir?",
+        "overbought": "🔴 Aşırı Alım — Fiyat çok hızlı yükseldi",
+        "oversold": "🟠 Aşırı Satım — Fiyat çok hızlı düştü",
+        "rsi_neutral": "🟢 Normal bölge — Aşırı hareket yok",
+        "drawdown_title": "Zirveden Ne Kadar Uzaktayız?",
+        "drawdown_peak": "🏔️ Zirvede — Düşüş yok",
+        "drawdown_normal": "✅ Normal — Güvenli bölge",
+        "drawdown_warning": "⚠️ Dikkat çekici düşüş — Yakından takip et",
+        "drawdown_bear": "🔴 Ayı bölgesi — Zirveden ciddi kayıp",
+        "recovery_label": "Kaybı telafi etmek için: +",
+        "tab_cb": "🏦 Merkez Bankası Faiz Etkileri (TCMB/Fed)",
     }
 }
 
@@ -194,25 +207,40 @@ ma_30 = close.tail(30).mean()
 # ── Filter ────────────────────────────────────────────────────────────────────
 st.caption(f"{t['last_updated']}: {datetime.now().strftime('%H:%M:%S')}")
 
-selected = st.multiselect(
-    t['select_assets'],
-    options=list(live_prices.keys()),
-    default=list(live_prices.keys())
-)
-
-if not selected:
-    st.warning(t['no_asset_warning'])
-    st.stop()
-
 # ── Tabs ──────────────────────────────────────────────────────────────────────
+st.markdown("""
+<style>
+button[data-baseweb="tab"] {
+    font-size: 40px;
+    font-weight: 600;
+}
+</style>
+""", unsafe_allow_html=True)
+
 tab1, tab2, tab3 = st.tabs([
     t['tab_main'],
-    t['tab_rsi'],
-    t['tab_drawdown']
+    t['tab_gold_analysis'],
+    t['tab_cb']
 ])
+
+@st.fragment(run_every=60)
+def auto_refresh():
+    st.cache_data.clear()
+
+auto_refresh()
 
 # ── Tab 1: Main ───────────────────────────────────────────────────────────────
 with tab1:
+    selected = st.multiselect(
+        t['select_assets'],
+        options=list(live_prices.keys()),
+        default=list(live_prices.keys())
+    )
+
+    if not selected:
+        st.warning(t['no_asset_warning'])
+        st.stop()
+
     cols = st.columns(len(selected))
     for i, a in enumerate(selected):
         with cols[i]:
@@ -238,7 +266,13 @@ with tab1:
                 days = period_map[period]
                 chart_data = close[a].tail(days)
                 fig = go.Figure()
-                fig.add_trace(go.Scatter(x=chart_data.index, y=chart_data.values, mode='lines', name=a))
+                fig.add_trace(go.Scatter(
+                    x=chart_data.index,
+                    y=chart_data.values,
+                    mode='lines',
+                    name=a,
+                    connectgaps=True
+                ))
                 fig.update_layout(margin=dict(l=0, r=0, t=0, b=0), height=250)
                 st.plotly_chart(fig, use_container_width=True)
 
@@ -311,7 +345,6 @@ with tab1:
 
             **🚨 Daily Alarm**
             Alerts you when today's price movement is unusually large.
-            Thresholds are calculated from 1 year of historical data using statistics:
             - ✅ No Significant Change → Normal movement
             - ⚠️ Caution → Slightly above average movement
             - ⚠️ Warning → Notably above average movement
@@ -320,7 +353,6 @@ with tab1:
             ---
 
             **📊 Period Alarms**
-            Shows where the current price stands compared to recent highs and lows:
             - 30-Day: compared to the last 30 days
             - 52-Week: compared to the last 52 weeks
             - 5-Year: compared to the last 5 years
@@ -335,7 +367,6 @@ with tab1:
 
             **🔮 30-Day Projection**
             Not a forecast. Shows where the price might go if the current trend continues.
-            Trend is calculated as a 7-day average of the 30-day rate of change for stability:
             - 🟢 Best Case: most favorable price direction
             - 🟡 Base: current trend continues at the same pace
             - 🔴 Worst Case: least favorable price direction
@@ -355,8 +386,6 @@ with tab1:
             ---
 
             **🚨 Günlük Alarm**
-            Günlük fiyat hareketi alışılmadık büyüklükte olduğunda uyarır.
-            Eşikler 1 yıllık geçmiş veriden istatistiksel olarak hesaplanır:
             - ✅ Önemli Değişim Yok → Normal hareket
             - ⚠️ Dikkat → Ortalamanın biraz üzerinde
             - ⚠️ Uyarı → Belirgin şekilde yüksek hareket
@@ -365,7 +394,6 @@ with tab1:
             ---
 
             **📊 Dönem Alarmlari**
-            Güncel fiyatın son yüksek ve düşüklere göre nerede olduğunu gösterir:
             - 30 Gün: son 30 günle karşılaştırma
             - 52 Hafta: son 52 haftayla karşılaştırma
             - 5 Yıl: son 5 yılla karşılaştırma
@@ -380,50 +408,93 @@ with tab1:
 
             **🔮 30 Günlük Projeksiyon**
             Tahmin değildir. Mevcut trendin devam etmesi durumunda fiyatın nereye gidebileceğini gösterir.
-            Trend, kararlılık için 30 günlük değişim oranının 7 günlük ortalaması olarak hesaplanır:
             - 🟢 En İyi Senaryo: en olumlu fiyat yönü
             - 🟡 Baz: mevcut trend aynı hızda devam eder
             - 🔴 En Kötü Senaryo: en olumsuz fiyat yönü
             """)
 
-# ── Tab 2: RSI ────────────────────────────────────────────────────────────────
+# ── Tab 2: Gold Analysis ──────────────────────────────────────────────────────
 with tab2:
-    st.subheader(f"📈 {t['rsi_title']}")
-    cols = st.columns(len(selected))
-    for i, a in enumerate(selected):
-        with cols[i]:
-            rsi_value = get_rsi(close[a]).iloc[-1]
-            st.markdown(f"**{a}**")
-            st.metric(label="RSI", value=f"{rsi_value:.1f}")
-            if rsi_value >= 70:
-                st.warning(t['overbought'])
-            elif rsi_value <= 30:
-                st.warning(t['oversold'])
-            else:
-                st.success(t['neutral'])
+    st.subheader(t['tab_gold_analysis'])
 
-with st.expander(t['rsi_info']):
-    if lang == "English":
-        st.write("""
-        RSI measures how fast and how much a price has moved in the last 14 days.
+    gold_usd    = live_prices.get('Gold')
+    gold_change = daily_change_pct.get('Gold')
 
-        - 🔴 Above 70 → Price rose too fast → may slow down soon
-        - 🟠 Below 30 → Price dropped too fast → may recover soon  
-        - 🟢 Between 30-70 → Normal movement
-        """)
-    else:
-        st.write("""
-        RSI son 14 günde fiyatın ne kadar hızlı hareket ettiğini ölçer.
+    col1, col2 = st.columns(2)
 
-        - 🔴 70 üzeri → Fiyat çok hızlı yükseldi → yavaşlayabilir
-        - 🟠 30 altı → Fiyat çok hızlı düştü → toparlanabilir
-        - 🟢 30-70 arası → Normal hareket
-        """)
+    with col1:
+        # RSI
+        st.markdown(f"**{t['rsi_title']}**")
+        rsi_value = get_rsi(close['Gold']).iloc[-1]
+        st.metric(label="RSI", value=f"{rsi_value:.1f}")
+        if rsi_value >= 70:
+            st.warning(t['overbought'])
+        elif rsi_value <= 30:
+            st.warning(t['oversold'])
+        else:
+            st.success(t['rsi_neutral'])
 
-# ── Tab 3: Drawdown ───────────────────────────────────────────────────────────
+    with col2:
+        # Drawdown
+        st.markdown(f"**{t['drawdown_title']}**")
+        rolling_max      = close['Gold'].cummax()
+        drawdown         = (close['Gold'] - rolling_max) / rolling_max * 100
+        current_drawdown = drawdown.iloc[-1]
+        recovery_needed  = (rolling_max.iloc[-1] / close['Gold'].iloc[-1] - 1) * 100
+
+        st.metric(label="Drawdown", value=f"{current_drawdown:.1f}%")
+        if current_drawdown == 0:
+            st.caption("—")
+            st.success(t["drawdown_peak"])
+        elif current_drawdown > -10:
+            st.success(t["drawdown_normal"])
+            st.markdown(f"**{t['recovery_label']}{recovery_needed:.1f}%**")
+        elif current_drawdown > -20:
+            st.warning(t["drawdown_warning"])
+            st.markdown(f"**{t['recovery_label']}{recovery_needed:.1f}%**")
+        else:
+            st.error(t["drawdown_bear"])
+            st.markdown(f"**{t['recovery_label']}{recovery_needed:.1f}%**")
+
+    st.divider()
+
+    with st.expander(t['rsi_info']):
+        if lang == "English":
+            st.write("""
+            **RSI (Relative Strength Index)**
+            Measures how fast and how much a price has moved in the last 14 days.
+            - 🔴 Above 70 → Price rose too fast → may slow down soon
+            - 🟠 Below 30 → Price dropped too fast → may recover soon
+            - 🟢 Between 30-70 → Normal movement
+
+            ---
+
+            **Drawdown**
+            Shows how far the current price is from its all-time high.
+            - 🏔️ 0% → At peak
+            - ✅ 0% to -10% → Normal pullback
+            - ⚠️ -10% to -20% → Notable drop, monitor closely
+            - 🔴 Below -20% → Bear territory, significant loss
+            """)
+        else:
+            st.write("""
+            **RSI (Göreceli Güç Endeksi)**
+            Son 14 günde fiyatın ne kadar hızlı hareket ettiğini ölçer.
+            - 🔴 70 üzeri → Fiyat çok hızlı yükseldi → yavaşlayabilir
+            - 🟠 30 altı → Fiyat çok hızlı düştü → toparlanabilir
+            - 🟢 30-70 arası → Normal hareket
+
+            ---
+
+            **Drawdown**
+            Fiyatın zirvesinden ne kadar uzakta olduğunu gösterir.
+            - 🏔️ %0 → Zirvede
+            - ✅ %0 ile -%10 → Normal düzeltme
+            - ⚠️ -%10 ile -%20 → Dikkat çekici düşüş
+            - 🔴 -%20 altı → Ayı bölgesi, ciddi kayıp
+            """)
+    st.divider()
+
 with tab3:
-    st.info("Drawdown coming soon...")
-
-# ── Auto Refresh ──────────────────────────────────────────────────────────────
-time.sleep(60)
-st.rerun()
+    st.subheader(t['tab_cb'])
+    st.info("Coming Soon...")
