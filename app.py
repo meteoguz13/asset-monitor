@@ -5,6 +5,7 @@ import time
 from datetime import datetime
 from functions import check_daily_alarm, check_period_alarm, get_trend, get_thresholds, format_period, get_rsi
 import plotly.graph_objects as go
+from datetime import datetime, timezone, timedelta
 
 
 st.set_page_config(
@@ -205,8 +206,7 @@ ma_7  = close.tail(7).mean()
 ma_30 = close.tail(30).mean()
 
 # ── Filter ────────────────────────────────────────────────────────────────────
-st.caption(f"{t['last_updated']}: {datetime.now().strftime('%H:%M:%S')}")
-
+st.caption(f"{t['last_updated']}: {datetime.now(timezone(timedelta(hours=3))).strftime('%H:%M:%S')}")
 # ── Tabs ──────────────────────────────────────────────────────────────────────
 st.markdown("""
 <style>
