@@ -7,13 +7,13 @@ from functions import check_daily_alarm, check_period_alarm, get_trend, get_thre
 import plotly.graph_objects as go
 from datetime import datetime, timezone, timedelta
 from streamlit_autorefresh import st_autorefresh
-st_autorefresh(interval=60000)
 
 st.set_page_config(
     page_title="Asset Monitor",
     page_icon="📈",
     layout="wide"
 )
+
 
 # ── Language ──────────────────────────────────────────────────────────────────
 with st.sidebar:
@@ -181,6 +181,7 @@ def get_historical_data(symbols):
 # ── Load Data ─────────────────────────────────────────────────────────────────
 live_prices = get_live_prices(symbols)
 close, close_5y = get_historical_data(symbols)
+st_autorefresh(interval=60000)
 
 daily_change = close.pct_change(fill_method=None) * 100
 yesterday    = close.iloc[-2]
