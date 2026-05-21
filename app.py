@@ -6,7 +6,8 @@ from datetime import datetime
 from functions import check_daily_alarm, check_period_alarm, get_trend, get_thresholds, format_period, get_rsi
 import plotly.graph_objects as go
 from datetime import datetime, timezone, timedelta
-
+from streamlit_autorefresh import st_autorefresh
+st_autorefresh(interval=60000)
 
 st.set_page_config(
     page_title="Asset Monitor",
