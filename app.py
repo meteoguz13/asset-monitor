@@ -181,7 +181,7 @@ def get_historical_data(symbols):
 # ── Load Data ─────────────────────────────────────────────────────────────────
 live_prices = get_live_prices(symbols)
 close, close_5y = get_historical_data(symbols)
-st_autorefresh(interval=60000)
+###st_autorefresh(interval=60000)
 
 daily_change = close.pct_change(fill_method=None) * 100
 yesterday    = close.iloc[-2]
