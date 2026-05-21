@@ -225,12 +225,6 @@ tab1, tab2, tab3 = st.tabs([
     t['tab_cb']
 ])
 
-@st.fragment(run_every=60)
-def auto_refresh():
-    st.cache_data.clear()
-
-auto_refresh()
-
 # ── Tab 1: Main ───────────────────────────────────────────────────────────────
 with tab1:
     selected = st.multiselect(
