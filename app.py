@@ -436,7 +436,7 @@ with tab2:
         rolling_max = close['Gold'].dropna().cummax()
         drawdown = (close['Gold'].dropna() - rolling_max) / rolling_max * 100
         current_drawdown = drawdown.iloc[-1]
-        recovery_needed = (rolling_max.iloc[-1] / close['Gold'].dropna().iloc[-1] - 1) * 10
+        recovery_needed = (rolling_max.iloc[-1] / close['Gold'].dropna().iloc[-1] - 1) * 100
 
         st.metric(label="Drawdown", value=f"{current_drawdown:.1f}%")
         if current_drawdown == 0:
