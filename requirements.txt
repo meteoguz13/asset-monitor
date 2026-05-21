@@ -1,4 +1,4 @@
 yfinance
-streamlit
+streamlit>=1.33.0
 pandas
 plotly
