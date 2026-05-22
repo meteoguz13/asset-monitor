@@ -16,7 +16,7 @@ symbols = {
 }
 
 # ── Download Historical Data ──────────────────────────────────────────────────
-data = yf.download(list(symbols.values()), period='1y', interval='1d')
+data = yf.download(list(symbols.values()), period='2y', interval='1d')
 close = data['Close']
 close.columns = ['EUR/TRY', 'GBP/TRY', 'Gold', 'USD/TRY']
 print("1-year data shape:", close.shape)
@@ -224,3 +224,14 @@ for a in close.columns:
 
 # ── Price Projection ──────────────────────────────────────────────────────────
 get_projection(close, live_prices)
+
+print(close['USD/TRY']['2025-04-18':'2025-04-25'])
+
+
+
+
+
+
+
+
+

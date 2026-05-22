@@ -97,9 +97,43 @@ def get_rsi(close_series, period=14):
     return rsi
 
 
+def get_impact (events, close):
+    results = []
+    for _, row in events.iterrows():
+        date = row["date"] - pd.offsets.BDay(1)
+        base_price = close.asof(date)
+        price_t1 = close.asof(row["date"] + pd.offsets.BDay(1))
+        price_t3 = close.asof(row["date"] + pd.offsets.BDay(3))
+        price_t7 = close.asof(row["date"] + pd.offsets.BDay(7))
+        change_t1 = (price_t1 - base_price) / base_price * 100
+        change_t3 = (price_t3 - base_price) / base_price * 100
+        change_t7 = (price_t7 - base_price) / base_price * 100
+        results.append({
+            'date': row["date"],
+            'type': row["type"],
+            'decision': row["decision"],
+            'USD/TRY_t1': change_t1['USD/TRY'],
+            'USD/TRY_t3': change_t3['USD/TRY'],
+            'USD/TRY_t7': change_t7['USD/TRY'],
+            'EUR/TRY_t1': change_t1['EUR/TRY'],
+            'EUR/TRY_t3': change_t3['EUR/TRY'],
+            'EUR/TRY_t7': change_t7['EUR/TRY'],
+            'GBP/TRY_t1': change_t1['GBP/TRY'],
+            'GBP/TRY_t3': change_t3['GBP/TRY'],
+            'GBP/TRY_t7': change_t7['GBP/TRY'],
+            'Gold_t1': change_t1['Gold'],
+            'Gold_t3': change_t3['Gold'],
+            'Gold_t7': change_t7['Gold'],
+        })
+    return pd.DataFrame(results)
 
-
-
+def format_change(val):
+    if val > 0:
+        return f"+{val:.2f}% ↑"
+    elif val < 0:
+        return f"{val:.2f}% ↓"
+    else:
+        return f"{val:.2f}%"
 
 
 

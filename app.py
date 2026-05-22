@@ -3,10 +3,18 @@ import yfinance as yf
 import pandas as pd
 import time
 from datetime import datetime
-from functions import check_daily_alarm, check_period_alarm, get_trend, get_thresholds, format_period, get_rsi
+
+from astropy.utils.metadata.utils import dtype
+from mpl_toolkits.axisartist.angle_helper import select_step
+from torch.fx.experimental.unification.unification_tools import groupby
+
+from functions import check_daily_alarm, format_change, check_period_alarm, \
+get_trend, get_thresholds, format_period, get_rsi,get_impact
+
 import plotly.graph_objects as go
 from datetime import datetime, timezone, timedelta
 from streamlit_autorefresh import st_autorefresh
+from events import events
 
 st.set_page_config(
     page_title="Asset Monitor",
@@ -14,12 +22,29 @@ st.set_page_config(
     layout="wide"
 )
 
-
 # ── Language ──────────────────────────────────────────────────────────────────
 with st.sidebar:
     lang = st.selectbox("🌐 Language", ["English", "Türkçe"])
 labels = {
     "English": {
+        "cut": "Rate Cut ✂️",
+        "hike": "Rate Hike 📈",
+        "hold": "Hold ⏸️",
+        "avg_caption": "Historical average asset reaction by decision type",
+        "impact_caption": "% change after the decision (vs. day before)",
+        "tcmb_title": "## 🏦 TCMB",
+        "fed_title": "## 🏦 Fed",
+        "cb_intro": "This tab shows how TCMB and Fed interest rate decisions impact USD/TRY, EUR/TRY, GBP/TRY and Gold in the following days.",
+        "cb_info_title": "ℹ️ How to read this page?",
+        "t1_label": "1 Day After",
+        "t3_label": "3 Days After",
+        "t7_label": "1 Week After",
+        "new_rate": "🆕 New Rate",
+        "prev_rate": "🔙 Previous Rate",
+        "decision_label": "📋 Decision",
+        "date_label": "📅 Date",
+        "last_tcmb": "Last TCMB Decision",
+        "last_fed": "Last Fed Decision",
         "title": "Asset Monitor",
         "caption": "Live prices, alerts and trend analysis for USD/TRY, EUR/TRY, GBP/TRY and Gold",
         "tab_main": "🏠 Main",
@@ -74,8 +99,28 @@ labels = {
         "drawdown_bear": "🔴 Bear territory — significant loss from peak",
         "recovery_label": "To recover the loss: +",
         "tab_cb": "🏦 Central Bank Rate Impact (TCMB/Fed)",
+        "avg_impact_title": "Average Impact by Decision",
+
     },
     "Türkçe": {
+        "cut": "Faiz İndirimi ✂️",
+        "hike": "Faiz Artırımı 📈",
+        "hold": "Sabit ⏸️",
+        "avg_caption": "Karar tipine göre tarihsel ortalama varlık tepkisi",
+        "tcmb_title": "## 🏦 TCMB",
+        "fed_title": "## 🏦 Fed",
+        "cb_intro": "Bu sekme TCMB ve Fed faiz kararlarının USD/TRY, EUR/TRY, GBP/TRY ve Altın üzerindeki etkisini gösterir.",
+        "cb_info_title": "ℹ️ Bu sayfa nasıl okunur?",
+        "impact_caption": "Karar sonrası % değişim (karar öncesi güne göre)",
+        "t1_label": "1 Gün Sonra",
+        "t3_label": "3 Gün Sonra",
+        "t7_label": "1 Hafta Sonra",
+        "new_rate": "🆕 Yeni Faiz",
+        "prev_rate": "🔙 Önceki Faiz",
+        "decision_label": "📋 Karar",
+        "date_label": "📅 Tarih",
+        "last_tcmb": "Son TCMB Kararı",
+        "last_fed": "Son Fed Kararı",
         "title": "Varlık Takip",
         "caption": "USD/TRY, EUR/TRY, GBP/TRY ve Altın için canlı fiyat, alarm ve trend analizi",
         "tab_main": "🏠 Ana Sayfa",
@@ -130,6 +175,7 @@ labels = {
         "drawdown_bear": "🔴 Ayı bölgesi — Zirveden ciddi kayıp",
         "recovery_label": "Kaybı telafi etmek için: +",
         "tab_cb": "🏦 Merkez Bankası Faiz Etkileri (TCMB/Fed)",
+        "avg_impact_title": "Karara Göre Ortalama Etki",
     }
 }
 
@@ -143,7 +189,7 @@ symbols = {
     'USD/TRY': 'USDTRY=X',
     'EUR/TRY': 'EURTRY=X',
     'GBP/TRY': 'GBPTRY=X',
-    'Gold':    'GC=F'
+    'Gold': 'GC=F'
 }
 
 display_names = {
@@ -152,6 +198,7 @@ display_names = {
     'GBP/TRY': '1 £ / {:.2f} ₺',
     'Gold': '1 ons / {:.2f} $'
 }
+
 
 # ── Data Functions ────────────────────────────────────────────────────────────
 @st.cache_data(ttl=60)
@@ -168,9 +215,10 @@ def get_live_prices(symbols):
             prices[name] = None
     return prices
 
+
 @st.cache_data(ttl=3600)
 def get_historical_data(symbols):
-    data = yf.download(list(symbols.values()), period='1y', interval='1d')
+    data = yf.download(list(symbols.values()), period='2y', interval='1d')
     close = data['Close']
     close.columns = ['EUR/TRY', 'GBP/TRY', 'Gold', 'USD/TRY']
     data_5y = yf.download(list(symbols.values()), period='5y', interval='1d')
@@ -178,14 +226,15 @@ def get_historical_data(symbols):
     close_5y.columns = ['EUR/TRY', 'GBP/TRY', 'Gold', 'USD/TRY']
     return close, close_5y
 
+
 # ── Load Data ─────────────────────────────────────────────────────────────────
 live_prices = get_live_prices(symbols)
 close, close_5y = get_historical_data(symbols)
 st_autorefresh(interval=60000)
 
 daily_change = close.pct_change(fill_method=None) * 100
-yesterday    = close.iloc[-2]
-thresholds   = get_thresholds(daily_change)
+yesterday = close.iloc[-2]
+thresholds = get_thresholds(daily_change)
 
 daily_change_pct = {}
 for a in live_prices.keys():
@@ -196,15 +245,15 @@ for a in live_prices.keys():
 
 # Period data
 high_30d = close.tail(30).max()
-low_30d  = close.tail(30).min()
+low_30d = close.tail(30).min()
 high_52w = close.tail(252).max()
-low_52w  = close.tail(252).min()
-high_5y  = close_5y.max()
-low_5y   = close_5y.min()
+low_52w = close.tail(252).min()
+high_5y = close_5y.max()
+low_5y = close_5y.min()
 
 # Trend data
-ma_3  = close.tail(3).mean()
-ma_7  = close.tail(7).mean()
+ma_3 = close.tail(3).mean()
+ma_7 = close.tail(7).mean()
 ma_30 = close.tail(30).mean()
 
 # ── Filter ────────────────────────────────────────────────────────────────────
@@ -240,7 +289,7 @@ with tab1:
     cols = st.columns(len(selected))
     for i, a in enumerate(selected):
         with cols[i]:
-            price  = live_prices[a]
+            price = live_prices[a]
             change = daily_change_pct[a]
 
             if price and not pd.isna(yesterday[a]):
@@ -290,8 +339,10 @@ with tab1:
 
             st.divider()
 
-            p30 = format_period(check_period_alarm(price, high_30d[a], low_30d[a], t), high_30d[a], low_30d[a], price, t)
-            p52 = format_period(check_period_alarm(price, high_52w[a], low_52w[a], t), high_52w[a], low_52w[a], price, t)
+            p30 = format_period(check_period_alarm(price, high_30d[a], low_30d[a], t), high_30d[a], low_30d[a], price,
+                                t)
+            p52 = format_period(check_period_alarm(price, high_52w[a], low_52w[a], t), high_52w[a], low_52w[a], price,
+                                t)
             p5y = format_period(check_period_alarm(price, high_5y[a], low_5y[a], t), high_5y[a], low_5y[a], price, t)
 
             st.markdown(f"**{t['period_label']}:**")
@@ -306,13 +357,13 @@ with tab1:
 
             st.divider()
 
-            roc         = close[a].pct_change(30, fill_method=None).dropna() * 100
+            roc = close[a].pct_change(30, fill_method=None).dropna() * 100
             current_roc = roc.tail(7).mean()
             scenario_lo = round(price * (1 + (current_roc * 0.5) / 100), 2)
-            base        = round(price * (1 + (current_roc * 1.0) / 100), 2)
+            base = round(price * (1 + (current_roc * 1.0) / 100), 2)
             scenario_hi = round(price * (1 + (current_roc * 1.5) / 100), 2)
-            best_case   = max(scenario_lo, scenario_hi)
-            worst_case  = min(scenario_lo, scenario_hi)
+            best_case = max(scenario_lo, scenario_hi)
+            worst_case = min(scenario_lo, scenario_hi)
             st.markdown(f"**{t['projection_label']}:**")
             st.dataframe(
                 pd.DataFrame({
@@ -413,7 +464,7 @@ with tab1:
 with tab2:
     st.subheader(t['tab_gold_analysis'])
 
-    gold_usd    = live_prices.get('Gold')
+    gold_usd = live_prices.get('Gold')
     gold_change = daily_change_pct.get('Gold')
 
     col1, col2 = st.columns(2)
@@ -491,6 +542,179 @@ with tab2:
             """)
     st.divider()
 
+
+# ── Tab 3: TCMB/Fed Analysis ──────────────────────────────────────────────────────
+
 with tab3:
     st.subheader(t['tab_cb'])
-    st.info("Coming Soon...")
+    st.caption(t['cb_intro'])
+
+    impact = get_impact(events, close)
+    cols = impact.select_dtypes(include='number').columns
+    avg_impact = impact.groupby(["type", "decision"])[cols].mean().round(2)
+
+    son_tcmb = events[events["type"] == "TCMB"].iloc[-1]
+    son_fed = events[events["type"] == "Fed"].iloc[-1]
+    prev_tcmb = events[events["type"] == "TCMB"].iloc[-2]
+    prev_fed = events[events["type"] == "Fed"].iloc[-2]
+    tcmb_impact = impact[impact["date"] == son_tcmb["date"]]
+    fed_impact = impact[impact["date"] == son_fed["date"]]
+
+    assets = ['USD/TRY', 'EUR/TRY', 'GBP/TRY', 'Gold']
+    asset_symbols = {
+        'USD/TRY': '$ USD/TRY',
+        'EUR/TRY': '€ EUR/TRY',
+        'GBP/TRY': '£ GBP/TRY',
+        'Gold': '🪙 Gold'
+    }
+
+    # ── Bölüm 1: Son Kararlar ─────────────────────────────────────────────────
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.markdown(f"**🏦 {t['last_tcmb']}**")
+        st.write(f"{t['date_label']}: {son_tcmb['date'].strftime('%d.%m.%Y')}")
+        st.write(f"{t['prev_rate']}: %{prev_tcmb['rate']}")
+        st.write(f"{t['new_rate']}: %{son_tcmb['rate']}")
+        st.write(f"{t['decision_label']}: {son_tcmb['decision']}")
+        rows = []
+        for a in assets:
+            rows.append({
+                'Asset': asset_symbols[a],
+                t['t1_label']: tcmb_impact[f'{a}_t1'].values[0],
+                t['t3_label']: tcmb_impact[f'{a}_t3'].values[0],
+                t['t7_label']: tcmb_impact[f'{a}_t7'].values[0],
+            })
+        st.caption(t['impact_caption'])
+        df = pd.DataFrame(rows).set_index('Asset').T
+        styled_df = df.style.format(format_change).map(
+            lambda v: 'color: green' if v > 0 else ('color: red' if v < 0 else '')
+        )
+        st.dataframe(styled_df, use_container_width=True)
+
+    with col2:
+        st.markdown(f"**🏦 {t['last_fed']}**")
+        st.write(f"{t['date_label']}: {son_fed['date'].strftime('%d.%m.%Y')}")
+        st.write(f"{t['prev_rate']}: %{prev_fed['rate']}")
+        st.write(f"{t['new_rate']}: %{son_fed['rate']}")
+        st.write(f"{t['decision_label']}: {son_fed['decision']}")
+        rows = []
+        for a in assets:
+            rows.append({
+                'Asset': asset_symbols[a],
+                t['t1_label']: fed_impact[f'{a}_t1'].values[0],
+                t['t3_label']: fed_impact[f'{a}_t3'].values[0],
+                t['t7_label']: fed_impact[f'{a}_t7'].values[0],
+            })
+        st.caption(t['impact_caption'])
+        df = pd.DataFrame(rows).set_index('Asset').T
+        styled_df = df.style.format(format_change).map(
+            lambda v: 'color: green' if v > 0 else ('color: red' if v < 0 else '')
+        )
+        st.dataframe(styled_df, use_container_width=True)
+
+    # ── Bölüm 2: Ortalama Etki ────────────────────────────────────────────────
+    st.divider()
+    st.markdown(f"**📊 {t['avg_impact_title']}**")
+
+    col3, col4 = st.columns(2)
+
+    with col3:
+        st.markdown(t['tcmb_title'])
+        st.caption(t['avg_caption'])
+        decision_labels = {'Cut': t['cut'], 'Hike': t['hike'], 'Hold': t['hold']}
+        tcmb_avg = avg_impact.loc["TCMB"]
+        for decision in tcmb_avg.index:
+            rows = []
+            for a in assets:
+                rows.append({
+                    'Asset': asset_symbols[a],
+                    t['t1_label']: float(tcmb_avg.loc[decision, f'{a}_t1']),
+                    t['t3_label']: float(tcmb_avg.loc[decision, f'{a}_t3']),
+                    t['t7_label']: float(tcmb_avg.loc[decision, f'{a}_t7']),
+                })
+            df = pd.DataFrame(rows).set_index('Asset').T
+            df.index.name = decision_labels.get(decision, decision)
+            styled_df = df.style.format(format_change).map(
+                lambda v: 'color: green' if v > 0 else ('color: red' if v < 0 else '')
+            )
+            st.dataframe(styled_df, use_container_width=True)
+
+    with col4:
+        st.markdown(t['fed_title'])
+        st.caption(t['avg_caption'])
+        decision_labels = {'Cut': t['cut'], 'Hike': t['hike'], 'Hold': t['hold']}
+        fed_avg = avg_impact.loc["Fed"]
+        for decision in fed_avg.index:
+            rows = []
+            for a in assets:
+                rows.append({
+                    'Asset': asset_symbols[a],
+                    t['t1_label']: float(fed_avg.loc[decision, f'{a}_t1']),
+                    t['t3_label']: float(fed_avg.loc[decision, f'{a}_t3']),
+                    t['t7_label']: float(fed_avg.loc[decision, f'{a}_t7']),
+                })
+            df = pd.DataFrame(rows).set_index('Asset').T
+            df.index.name = decision_labels.get(decision, decision)
+            styled_df = df.style.format(format_change).map(
+                lambda v: 'color: green' if v > 0 else ('color: red' if v < 0 else '')
+            )
+            st.dataframe(styled_df, use_container_width=True)
+
+    st.divider()
+    with st.expander(t['cb_info_title']):
+        if lang == "English":
+            st.write("""
+            **Last Decisions**
+            Shows the most recent TCMB and Fed interest rate decisions and how assets reacted in the following 1, 3 and 7 days.
+
+            ---
+
+            **Average Impact**
+            Shows the historical average asset reaction grouped by decision type (Cut / Hike / Hold).
+            - 🟢 Green = asset gained value
+            - 🔴 Red = asset lost value
+
+            ---
+
+            **Note:** TCMB Hike shows 0% for t+1 and t+3 because the decision date fell on a market holiday.
+            """)
+        else:
+            st.write("""
+            **Son Kararlar**
+            En son TCMB ve Fed faiz kararlarını ve varlıkların sonraki 1, 3 ve 7 günde nasıl tepki verdiğini gösterir.
+
+            ---
+
+            **Ortalama Etki**
+            Karar tipine göre (İndirim / Artırım / Sabit) varlıkların tarihsel ortalama tepkisini gösterir.
+            - 🟢 Yeşil = varlık değer kazandı
+            - 🔴 Kırmızı = varlık değer kaybetti
+
+            ---
+
+            **Not:** TCMB Artırım kararında t+1 ve t+3 %0 görünüyor çünkü karar tarihi piyasa tatiline denk geldi.
+            """)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

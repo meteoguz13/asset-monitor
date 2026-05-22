@@ -1,5 +1,6 @@
 import pandas as pd
 import yfinance as yf
+
 pd.set_option("display.max_columns", None)
 pd.set_option("display.max_rows", None)
 pd.set_option("display.max_colwidth", None)
@@ -17,7 +18,6 @@ symbols = {
 data = yf.download(list(symbols.values()), period='2y', interval='1d')
 close = data['Close']
 close.columns = ['EUR/TRY', 'GBP/TRY', 'Gold', 'USD/TRY']
-print("1-year data shape:", close.shape)
 
 
 tcmb_events = [
@@ -73,53 +73,44 @@ import os
 events = pd.DataFrame(tcmb_events + fed_events)
 events['date'] = pd.to_datetime(events['date'])
 events = events.sort_values('date').reset_index(drop=True)
-print(events.head())
 
 events["rate_change"] = events.groupby("type")["rate"].diff()
 
 events["decision"] = events["rate_change"].apply(lambda x:"Hike" if x > 0 else
 ("Cut" if x < 0 else "Hold"))
 
-print(events.to_string())
+print(events.head())
 
 
-def get_impact (events, close):
-    results = []
-    for _, row in events.iterrows():
-        date = row["date"] - pd.Timedelta(days=1)
-        base_price = close.asof(date)
-        price_t1 = close.asof(row["date"] + pd.Timedelta(days=1))
-        price_t3 = close.asof(row["date"] + pd.Timedelta(days=3))
-        price_t7 = close.asof(row["date"] + pd.Timedelta(days=7))
-        change_t1 = (price_t1 - base_price) / base_price * 100
-        change_t3 = (price_t3 - base_price) / base_price * 100
-        change_t7 = (price_t7 - base_price) / base_price * 100
-        results.append({
-            'date': row["date"],
-            'type': row["type"],
-            'decision': row["decision"],
-            'USD/TRY_t1': change_t1['USD/TRY'],
-            'USD/TRY_t3': change_t3['USD/TRY'],
-            'USD/TRY_t7': change_t7['USD/TRY'],
-            'EUR/TRY_t1': change_t1['EUR/TRY'],
-            'EUR/TRY_t3': change_t3['EUR/TRY'],
-            'EUR/TRY_t7': change_t7['EUR/TRY'],
-            'GBP/TRY_t1': change_t1['GBP/TRY'],
-            'GBP/TRY_t3': change_t3['GBP/TRY'],
-            'GBP/TRY_t7': change_t7['GBP/TRY'],
-            'Gold_t1': change_t1['Gold'],
-            'Gold_t3': change_t3['Gold'],
-            'Gold_t7': change_t7['Gold'],
-        })
-    return pd.DataFrame(results)
 
 
-print(get_impact(events, close).to_string())
 
-impact = get_impact(events, close)
 
-cols = impact.select_dtypes(include='number').columns
-print(impact.groupby(["type","decision"])[cols].mean())
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
