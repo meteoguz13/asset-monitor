@@ -23,6 +23,7 @@ st.set_page_config(
 # ── Language ──────────────────────────────────────────────────────────────────
 with st.sidebar:
     lang = st.selectbox("🌐 Language", ["English", "Türkçe"])
+
 labels = {
     "English": {
         "tab_volatility": "📊 Volatility",
@@ -245,6 +246,12 @@ def get_historical_data(symbols):
 
 # ── Load Data ─────────────────────────────────────────────────────────────────
 live_prices = get_live_prices(symbols)
+with st.sidebar:
+    st.divider()
+    for a, price in live_prices.items():
+        if price:
+            with st.container(border=True):
+                st.metric(label=a, value=display_names[a].format(price))
 close, close_5y = get_historical_data(symbols)
 st_autorefresh(interval=60000)
 
