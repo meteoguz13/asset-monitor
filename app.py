@@ -27,6 +27,13 @@ with st.sidebar:
     lang = st.selectbox("🌐 Language", ["English", "Türkçe"])
 labels = {
     "English": {
+        "tab_volatility": "📊 Volatility",
+        "vol_title": "Monthly Volatility",
+        "vol_caption": "Higher = more turbulent month. Lower = calmer, more predictable price movement.",
+        "top10_title": "Top 10 Single-Day Moves",
+        "top10_up": "📈 Biggest Up Days",
+        "top10_down": "📉 Biggest Down Days",
+        "select_asset": "Select Asset",
         "cut": "Rate Cut ✂️",
         "hike": "Rate Hike 📈",
         "hold": "Hold ⏸️",
@@ -100,9 +107,18 @@ labels = {
         "recovery_label": "To recover the loss: +",
         "tab_cb": "🏦 Central Bank Rate Impact (TCMB/Fed)",
         "avg_impact_title": "Average Impact by Decision",
+        "vol_intro": "Explore how volatile each asset has been over time and discover the most extreme single-day price moves.",
+        "vol_info_title": "ℹ️ How to read this page?",
 
     },
     "Türkçe": {
+        "tab_volatility": "📊 Volatilite",
+        "vol_title": "Aylık Volatilite",
+        "vol_caption": "Yüksek = daha hareketli ay. Düşük = daha sakin, daha öngörülebilir fiyat hareketi.",
+        "top10_title": "En Büyük 10 Günlük Hareket",
+        "top10_up": "📈 En Büyük Yükselişler",
+        "top10_down": "📉 En Büyük Düşüşler",
+        "select_asset": "Varlık Seçin",
         "cut": "Faiz İndirimi ✂️",
         "hike": "Faiz Artırımı 📈",
         "hold": "Sabit ⏸️",
@@ -176,6 +192,8 @@ labels = {
         "recovery_label": "Kaybı telafi etmek için: +",
         "tab_cb": "🏦 Merkez Bankası Faiz Etkileri (TCMB/Fed)",
         "avg_impact_title": "Karara Göre Ortalama Etki",
+        "vol_intro": "Her varlığın zaman içinde ne kadar hareketli olduğunu keşfedin ve en aşırı tek günlük fiyat hareketlerini görün.",
+        "vol_info_title": "ℹ️ Bu sayfa nasıl okunur?",
     }
 }
 
@@ -268,10 +286,11 @@ button[data-baseweb="tab"] {
 </style>
 """, unsafe_allow_html=True)
 
-tab1, tab2, tab3 = st.tabs([
+tab1, tab2, tab3, tab4 = st.tabs([
     t['tab_main'],
     t['tab_gold_analysis'],
-    t['tab_cb']
+    t['tab_cb'],
+    t['tab_volatility']
 ])
 
 # ── Tab 1: Main ───────────────────────────────────────────────────────────────
@@ -696,16 +715,82 @@ with tab3:
             **Not:** TCMB Artırım kararında t+1 ve t+3 %0 görünüyor çünkü karar tarihi piyasa tatiline denk geldi.
             """)
 
+with tab4:
+    st.subheader(t['tab_volatility'])
+    st.caption(t['vol_intro'])
 
+    selected_asset = st.selectbox(t['select_asset'], options=list(symbols.keys()), key="vol_asset")
+    monthly_vol = daily_change[selected_asset].groupby(daily_change.index.to_period('M')).std().round(2)
+    fig = go.Figure()
+    fig.add_trace(go.Bar(
+        x=monthly_vol.index.astype(str),
+        y=monthly_vol.values,
+        name=selected_asset
+    ))
+    fig.update_layout(
+        title=t['vol_title'],
+        xaxis_title="",
+        yaxis_title="%",
+        margin=dict(l=0, r=0, t=40, b=0),
+        height=350
+    )
+    st.plotly_chart(fig, use_container_width=True)
+    st.caption(t['vol_caption'])
 
+    st.divider()
+    st.markdown(f"**{t['top10_title']}**")
 
+    col1, col2 = st.columns(2)
 
+    with col1:
+        st.markdown(t['top10_up'])
+        top10_up = daily_change[selected_asset].nlargest(10).reset_index()
+        top10_up.columns = ['Date', '%']
+        top10_up['Date'] = top10_up['Date'].dt.strftime('%d.%m.%Y')
+        top10_up['%'] = top10_up['%'].apply(format_change)
+        styled_up = top10_up.style.map(
+            lambda v: 'color: green' if '↑' in str(v) else '',
+            subset=['%']
+        )
+        st.dataframe(styled_up, hide_index=True, use_container_width=True)
+    with col2:
+        st.markdown(t['top10_down'])
+        top10_down = daily_change[selected_asset].nsmallest(10).reset_index()
+        top10_down.columns = ['Date', '%']
+        top10_down['Date'] = top10_down['Date'].dt.strftime('%d.%m.%Y')
+        top10_down['%'] = top10_down['%'].apply(format_change)
+        styled_down = top10_down.style.map(
+            lambda v: 'color: red' if v else '',
+            subset=['%']
+        )
+        st.dataframe(styled_down, hide_index=True, use_container_width=True)
 
+    with st.expander(t['vol_info_title']):
+        if lang == "English":
+            st.write("""
+            **Monthly Volatility Chart**
+            Shows the standard deviation of daily returns for each month. Higher bars mean the asset moved more unpredictably that month.
 
+            ---
 
+            **Top 10 Single-Day Moves**
+            The biggest single-day percentage changes in the selected asset's price history.
+            - 📈 Biggest Up Days: largest positive moves
+            - 📉 Biggest Down Days: largest negative moves
+            """)
 
-
-
+        else:
+            st.write("""
+            **Aylık Volatilite Grafiği**
+            Her ay için günlük getirilerin standart sapmasını gösterir. Yüksek bar = o ay fiyat daha öngörülemez şekilde hareket etti.
+            
+            ---
+            
+            **En Büyük 10 Günlük Hareket**
+            Seçilen varlığın fiyat tarihindeki en büyük tek günlük yüzde değişimleri.
+            - 📈 En Büyük Yükselişler: en yüksek pozitif hareketler
+            - 📉 En Büyük Düşüşler: en büyük negatif hareketler
+             """)
 
 
 
